@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  golem-provider:
+    build: .
+    container_name: golem-provider
+    hostname: golem-provider
+    runtime: systemd
+    privileged: true  # 需要特权模式以启用嵌套虚拟化
+    environment:
+      - NETWORK=mainnet
+      - GLM_PRICING_PER_HOUR=0.1
+      - NODE_NAME=${NODE_NAME:-my-golem-node}
+    volumes:
+      - golem-data:/home/provider/.local/share/golem
+      - golem-config:/home/provider/.config/golem
+    ports:
+      - "11500:11500/udp"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]  # 如果有 GPU，可选
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "golemsp", "status", "|", "grep", "-q", "Service is running"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  golem-data:
+    driver: local
+  golem-config:
+    driver: local
