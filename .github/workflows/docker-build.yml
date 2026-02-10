@@ -24,7 +24,7 @@ jobs:
       - name: Build and Push (x86-64 only)
         uses: docker/build-push-action@v5
         with:
-          context: ./golem-provider
+          context: .
           platforms: linux/amd64
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/golem-provider:latest
