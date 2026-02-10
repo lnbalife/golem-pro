@@ -1,10 +1,9 @@
 # Golem Network Provider Docker Image
 # ⚠️ 只支持 x86-64 架构！不支持 ARM (Apple Silicon)
-# ARM 用户请使用 CI/CD 或云服务器构建
 
 FROM --platform=linux/amd64 ubuntu:22.04
 
-LABEL maintainer="your-email@example.com"
+LABEL maintainer="lnbalife"
 LABEL description="Golem Network Provider Node"
 LABEL version="1.0"
 
@@ -14,11 +13,25 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     gnupg \
     lsb-release \
+    wget \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# 安装 Golem Provider (仅 x86-64)
-RUN curl -sSf https://join.golem.network/as-provider | bash - \
-    && echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+# 手动安装 Golem Provider (避开 ARM 检测)
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then \
+        # 从官方脚本提取安装逻辑，跳过 ARM 检查
+        export GOLEM_INSTALL_SKIP_ARCH_CHECK=1 && \
+        curl -sSf https://join.golem.network/as-provider | SKIP_ARCH_CHECK=1 bash -s -- -y; \
+        export PATH="$HOME/.local/bin:$PATH"; \
+        # 复制到系统路径
+        cp -r $HOME/.local/bin/* /usr/local/bin/ 2>/dev/null || true; \
+    else \
+        echo "错误：只能在 x86-64 架构上运行"; \
+        exit 1; \
+    fi
+
+ENV PATH="/usr/local/bin:${PATH}"
 
 # 创建非 root 用户
 RUN useradd -m -s /bin/bash provider && \
